@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Сервис Ollama с моделью LLaVA
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-server
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Если у вас нет GPU, закомментируйте блок deploy выше и раскомментируйте строку ниже для CPU
+    # command: ["serve"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Сервис телеграм-бота
+  bot:
+    build: .
+    container_name: it-audit-bot
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OLLAMA_HOST=http://ollama:11434
+      - MODEL_NAME=llava
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - audit-network
+
+volumes:
+  ollama_data:
+
+networks:
+  audit-network:
+    driver: bridge
