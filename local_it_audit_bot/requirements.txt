@@ -1,0 +1,5 @@
+# Зависимости для локального ИТ-аудит бота
+aiogram>=3.0.0
+aiohttp
+pillow
+requests
